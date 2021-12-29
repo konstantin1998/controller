@@ -1,55 +1,57 @@
 package ru.mipt;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.SpringApplication;
-import org.springframework.boot.autoconfigure.SpringBootApplication;
-import org.springframework.context.annotation.ComponentScan;
-
 import java.io.File;
 import java.io.IOException;
-import java.util.Map;
 
 public class Controller {
-	public static void main(String[] args) throws IOException, InterruptedException {
 
-//		LoadConfiguration lc = new LoadConfiguration();
-//		lc.setDuration(60);
-//		lc.setExpirationTimeout(60);
-//		lc.setRate(10);
-//		ObjectMapper objectMapper = new ObjectMapper();
-//		String fileName = "src/main/resources/loadConfig.json";
-//		objectMapper.writeValue(new File(fileName), lc);
-//		LoadConfiguration lc1 = objectMapper.readValue(new File(fileName), LoadConfiguration.class);
-//		System.out.println(
-//				lc.getDuration() == lc1.getDuration() &&
-//				lc.getExpirationTimeout() == lc1.getExpirationTimeout() &&
-//				lc.getRate() == lc1.getRate());
-//
-//		AppConfiguration conf = new AppConfiguration();
-//		System.out.println(conf.getInQueueUrl());
-		Generator g = new Generator(5, 10, "http://localhost:8081/putRequest");
-		Receiver r = new Receiver("http://localhost:8082/getResponse");
+	private static final ObjectMapper objectMapper = new ObjectMapper();
+
+	public static void main(String[] args) throws IOException, InterruptedException {
+		String appConfigPath = "../" + args[0];
+		AppConfig appConfig = readAppConfig(appConfigPath);
+
+		String pathToLoadConfig = "../" + args[1];
+		LoadConfiguration loadConfig = readLoadConfig(pathToLoadConfig);
+		System.out.println("CONFIG");
+		System.out.println("app config: " + objectMapper.writeValueAsString(appConfig));
+		System.out.println("load config: " + objectMapper.writeValueAsString(loadConfig));
+
+		Report report = generateReport(appConfig, loadConfig);
+
+		writeReport(report);
+	}
+
+	private static void writeReport(Report report) throws IOException {
+		System.out.println("Program finished".toUpperCase());
+		System.out.println("Report:".toUpperCase());
+		System.out.println("success: " + report.getSuccess());
+		System.out.println("errors: " + report.getErrors());
+		System.out.println("expired:" + report.getExpired());
+		System.out.println("lost: " + report.getLost());
+	}
+
+	private static LoadConfiguration readLoadConfig(String pathToLoadConfig) throws IOException {
+		return objectMapper.readValue(new File(pathToLoadConfig), LoadConfiguration.class);
+	}
+
+	private static AppConfig readAppConfig(String appConfigPath) throws IOException {
+		return objectMapper.readValue(new File(appConfigPath), AppConfig.class);
+	}
+
+	private static Report generateReport(AppConfig appConfig, LoadConfiguration loadConfig) throws InterruptedException {
+		Generator g = new Generator(loadConfig.getRate(), loadConfig.getDuration(), appConfig.getRequestToInputQueue());
+		Receiver r = new Receiver(appConfig.getRequestToOutputQueue());
 		g.start();
-		Thread.sleep(4000);
-		r.start();
 		g.join();
+		r.start();
+
+
 		r.join();
 
-		Map<String, ResponseInfo> report = r.getReceivedResponses();
-		System.out.println("Responses received: " + report.size());
-		System.out.println("Request sent: " + g.getSentRequests().size());
-	}
-	
-	private static LoadConfiguration readConfiguration(String fileName) {
-		ObjectMapper objectMapper = new ObjectMapper();
-		LoadConfiguration lc = null;
-		try {
-			lc = objectMapper.readValue(new File(fileName), LoadConfiguration.class);
-		} catch (IOException e) {
-			e.printStackTrace();
-		}
-		return lc;
+		ReportBuilder rb = new ReportBuilder(loadConfig.getExpirationTimeout() * 1000L, g.getSentRequests().size());
+		return rb.buildReport(g.getSentRequests(), r.getReceivedResponses());
 	}
 
 }

@@ -22,9 +22,11 @@ public class Receiver extends Thread{
         while(true) {
             Response response = receiveWithRetries();
             if(response == null) {
+                System.out.println("response is not received");
                 break;
             }
             saveResponse(response, System.currentTimeMillis());
+            System.out.println("received responses size: " + receivedResponses.size());
         }
     }
 
