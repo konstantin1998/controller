@@ -44,10 +44,9 @@ public class Controller {
 		Generator g = new Generator(loadConfig.getRate(), loadConfig.getDuration(), appConfig.getRequestToInputQueue());
 		Receiver r = new Receiver(appConfig.getRequestToOutputQueue());
 		g.start();
-		g.join();
 		r.start();
 
-
+		g.join();
 		r.join();
 
 		ReportBuilder rb = new ReportBuilder(loadConfig.getExpirationTimeout() * 1000L, g.getSentRequests().size());
