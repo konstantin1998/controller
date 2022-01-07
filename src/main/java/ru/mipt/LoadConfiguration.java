@@ -4,6 +4,7 @@ public class LoadConfiguration {
     private int rate;
     private int expirationTimeout;
     private int duration;
+    private int trafficThreshold = Integer.MAX_VALUE;
 
     public int getDuration() {
         return duration;
@@ -27,5 +28,13 @@ public class LoadConfiguration {
 
     public void setExpirationTimeout(int expirationTimeout) {
         this.expirationTimeout = expirationTimeout;
+    }
+
+    public int getTrafficThreshold() {
+        return trafficThreshold;
+    }
+
+    public void setTrafficThreshold(int trafficThreshold) {
+        this.trafficThreshold = trafficThreshold;
     }
 }

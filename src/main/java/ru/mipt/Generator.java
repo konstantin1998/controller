@@ -1,5 +1,7 @@
 package ru.mipt;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.ResourceAccessException;
 import org.springframework.web.client.RestTemplate;
@@ -11,15 +13,18 @@ import java.util.Random;
 public class Generator extends Thread {
     private final int period;
     private final int durationSeconds;
+    private final int maxBytesPerRequest;
+    private final ObjectMapper objectMapper = new ObjectMapper();
     private final String inputQueueUrl;
     private final RestTemplate restTemplate = new RestTemplate();
     private final Map<String, Long> sentRequests = new HashMap<>();
 
-    public Generator(int rate, int durationSeconds, String inputQueueUrl){
+    public Generator(int rate, int durationSeconds, int trafficThreshold, String inputQueueUrl){
         super();
-        period = Math.max(1, (int) 1000.0 / rate);
+        period = Math.max(1, 1000 / rate);
         this.durationSeconds = durationSeconds;
         this.inputQueueUrl = inputQueueUrl;
+        this.maxBytesPerRequest = trafficThreshold / rate;
     }
 
     @Override
@@ -33,7 +38,12 @@ public class Generator extends Thread {
             sendWithRetries(request);
             currentTime = System.currentTimeMillis();
             saveRequest(id, currentTime);
-            waitMillis(period);
+            try {
+                int timeToWait = period * Math.max(1, objectMapper.writeValueAsBytes(request).length / maxBytesPerRequest);
+                waitMillis(timeToWait);
+            } catch (JsonProcessingException e) {
+                e.printStackTrace();
+            }
         }
 
     }

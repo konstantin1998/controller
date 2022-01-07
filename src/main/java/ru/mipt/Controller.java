@@ -9,8 +9,8 @@ public class Controller {
 	private static final ObjectMapper objectMapper = new ObjectMapper();
 
 	public static void main(String[] args) throws IOException, InterruptedException {
-		String appConfigPath = "../" + args[0];
-		AppConfig appConfig = readAppConfig(appConfigPath);
+		String pathToAppConfig = "../" + args[0];
+		AppConfig appConfig = readAppConfig(pathToAppConfig);
 
 		String pathToLoadConfig = "../" + args[1];
 		LoadConfiguration loadConfig = readLoadConfig(pathToLoadConfig);
@@ -41,7 +41,12 @@ public class Controller {
 	}
 
 	private static Report generateReport(AppConfig appConfig, LoadConfiguration loadConfig) throws InterruptedException {
-		Generator g = new Generator(loadConfig.getRate(), loadConfig.getDuration(), appConfig.getRequestToInputQueue());
+		Generator g = new Generator(
+				loadConfig.getRate(),
+				loadConfig.getDuration(),
+				loadConfig.getTrafficThreshold(),
+				appConfig.getRequestToInputQueue()
+		);
 		Receiver r = new Receiver(appConfig.getRequestToOutputQueue());
 		g.start();
 		r.start();
